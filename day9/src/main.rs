@@ -18,7 +18,7 @@ fn parse_string(i: &str) -> (&str, u32) {
 }
 
 fn visualize(h: &Position, t: &Vec<Position>, v: &HashSet<(i32, i32)>) {
-    print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+    // print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
     let mut map = [['.'; 1000]; 1000];
 
     // Plot where tail have been
@@ -69,34 +69,24 @@ impl Position {
         let mut vy = 0;
         let mut vx = 0;
 
-        if self.y.abs_diff(other.y) >= 2 {
+        if self.y.abs_diff(other.y) >= 2
+            || self.y.abs_diff(other.y) >= 1 && self.x.abs_diff(other.x) >= 2 {
             if self.y > other.y {
                 vy = 1;
             } else {
                 vy = -1;
             }
-            if self.x.abs_diff(other.x) >= 1 {
-                if self.x > other.x {
-                    vx = 1;
-                } else {
-                    vx = -1;
-                }
-            }
         }
-        if self.x.abs_diff(other.x) >= 2 {
+
+        if self.x.abs_diff(other.x) >= 2
+            || self.x.abs_diff(other.x) >= 1 && self.y.abs_diff(other.y) >= 2 {
             if self.x > other.x {
                 vx = 1;
             } else {
                 vx = -1;
             }
-            if self.y.abs_diff(other.y) >= 1 {
-                if self.y > other.y {
-                    vy = 1
-                } else {
-                    vy = -1
-                }
-            }
         }
+
         Direction { x: vx, y: vy }
     }
 
@@ -129,7 +119,7 @@ fn solution(verbose: usize, number_knots: usize) -> usize {
                 // parse string
                 let (direction, steps) = parse_string(&l);
 
-                // calculate vector
+                // calculate move vector
                 let d = match direction {
                     "R" => { Direction { x: 1, y: 0 } }
                     "L" => { Direction { x: -1, y: 0 } }
@@ -162,8 +152,8 @@ fn solution(verbose: usize, number_knots: usize) -> usize {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
     let mut verbose = 0;
+    let args: Vec<String> = env::args().collect();
     if args.iter().find(|&arg| arg == "-v").is_some() {
         verbose = 1;
     }
