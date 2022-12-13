@@ -116,9 +116,9 @@ fn solution(file: &str, start: char, end: char, direction: i32) -> usize {
         if VERBOSE >= 1 { println!("Start = ({}, {})", x, y); }
         let s = search(&mut map, x, y, end, direction).unwrap();
         if VERBOSE >= 1 {
-            for (px, py) in s.iter() {
-                println!("{}, {}", px, py);
-            }
+            // for (px, py) in s.iter() {
+            //     println!("{}, {}", px, py);
+            // }
             let (mut map, _start) = parse_file(file, start, direction);
             for (px, py) in s.iter() {
                 map[*py][*px] = '#' as u8;
