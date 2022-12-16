@@ -1,4 +1,3 @@
-use chrono::prelude::*;
 use std::collections::{BinaryHeap, BTreeSet};
 use std::fs::File;
 use std::io::{self, BufRead};
@@ -98,14 +97,9 @@ fn solution(file: &str, line: i32) -> i32 {
 }
 
 fn scan_map(sensors: Vec<Sensor>, size: i32) -> (i32, i32) {
-    let mut x = 0;
+    let mut x;
     let mut y = 0;
     while y < size {
-        if y % 100000 == 0 {
-            let now: DateTime<Local> = Local::now();
-            println!("{}: {}%",now.to_rfc3339(), y as f64 / size as f64 * 100.0);
-        }
-
         x = 0;
         while x < size {
 
@@ -160,12 +154,12 @@ mod test {
     fn test_part1_input() {
         assert_ne!(solution("input.txt", 2000000), 4651344);
         assert_ne!(solution("input.txt", 2000000), 4651345);
-        assert_eq!(solution("input.txt", 4000000), 5083287);
+        assert_eq!(solution("input.txt", 2000000), 5083287);
     }
 
     #[test]
     fn test_part2_input() {
-        assert_eq!(solution2("input.txt", 2000000), 13134039205729);
+        assert_eq!(solution2("input.txt", 4000000), 13134039205729);
     }
 
     #[test]
