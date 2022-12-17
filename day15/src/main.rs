@@ -108,6 +108,7 @@ fn scan_map(sensors: Vec<Sensor>, size: i32) -> (i32, i32) {
                 if s.is_point_covered(x, y) {
                     covered = true;
                     x = s.position_x + s.radius() - s.position_y.abs_diff(y) as i32;
+                    break;
                 }
             }
             if !covered {
