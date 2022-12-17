@@ -1,3 +1,4 @@
+use std::collections::{BTreeSet, HashMap};
 use std::fs;
 
 static VERBOSE: i32 = 0;
@@ -7,7 +8,6 @@ struct Rock {
     x: isize,
     y: isize,
     parts: Vec<(isize, isize)>,
-    heights: Vec<(isize, isize)>,
 }
 
 
@@ -18,7 +18,6 @@ impl Rock {
             x: 2,
             y: top + 4,
             parts: vec![(0, 0), (1, 0), (2, 0), (3, 0)],
-            heights: vec![(0, 1), (1, 1), (2, 1), (3, 1)],
         }
     }
     fn cross(top: isize) -> Rock {
@@ -27,7 +26,6 @@ impl Rock {
             x: 2,
             y: top + 4,
             parts: vec![(0, 1), (1, 1), (2, 1), (1, 0), (1, 2)],
-            heights: vec![(0, 2), (1, 3), (2, 2)],
         }
     }
     fn l(top: isize) -> Rock {
@@ -36,7 +34,6 @@ impl Rock {
             x: 2,
             y: top + 4,
             parts: vec![(0, 0), (1, 0), (2, 0), (2, 1), (2, 2)],
-            heights: vec![(0, 1), (1, 1), (2, 3)],
         }
     }
     fn vline(top: isize) -> Rock {
@@ -45,7 +42,6 @@ impl Rock {
             x: 2,
             y: top + 4,
             parts: vec![(0, 0), (0, 1), (0, 2), (0, 3)],
-            heights: vec![(0, 4)],
         }
     }
     fn boks(top: isize) -> Rock {
@@ -54,7 +50,6 @@ impl Rock {
             x: 2,
             y: top + 4,
             parts: vec![(0, 0), (0, 1), (1, 0), (1, 1)],
-            heights: vec![(0, 2), (1, 2)],
         }
     }
 }
@@ -86,17 +81,16 @@ impl Level {
 
     fn apply_wind(&self, mut rock: Rock, wind: char) -> Rock {
         if VERBOSE >= 1 { println!("Applying wind"); }
-        let mut direction: isize;
-        if wind == '<' {
-            direction = -1;
+        let direction: isize = if wind == '<' {
+            -1
         } else {
-            direction = 1;
-        }
-        rock.x = (rock.x as isize + direction) as isize;
+            1
+        };
+        rock.x += direction;
         if self.check_collision(&rock) {
-            rock.x = (rock.x as isize - direction) as isize;
+            rock.x -= direction;
         }
-        return rock;
+        rock
     }
 
     fn apply_gravity(&mut self, mut rock: Rock) -> Option<Rock> {
@@ -125,13 +119,28 @@ impl Level {
     }
 
     fn is_tile_occupied(&self, x: isize, y: isize) -> bool {
-        if x < 0 ||
-            x > 6 ||
+        if !(0..=6).contains(&x) ||
             y < 0 ||
             self.bottom_line[x as usize][y as usize] == '#' {
             return true;
         }
         false
+    }
+
+    fn get_highest_count(&self) -> Vec<i32> {
+        let mut v = Vec::new();
+        for i in self.bottom_line.iter() {
+            let mut lowest = -1;
+            for (h, j) in i.iter().enumerate() {
+                if *j == '#' {
+                    lowest = h as i32;
+                }
+            }
+            v.push(lowest);
+        }
+        let pivot = v.iter().fold(i32::MAX, |carry, x| { carry.min(*x) });
+        v = v.iter().map(|v| { v - pivot }).collect();
+        v
     }
 
     fn print(&self) {
@@ -146,7 +155,7 @@ impl Level {
 
 fn solution(file: &str, rock_count: isize) -> isize {
     let mut level = Level {
-        bottom_line: vec![vec!['.'; 5000]; 7],
+        bottom_line: vec![vec!['.'; 50000]; 7],
         rock_count: 0,
         highest_point: -1,
     };
@@ -155,12 +164,25 @@ fn solution(file: &str, rock_count: isize) -> isize {
 
     let mut rock = level.spawn_next_rock();
 
+    let mut cycle_detector = HashMap::new();
     loop {
-        for wind in data.chars() {
+        for (w, wind) in data.chars().enumerate() {
             if VERBOSE >= 1 { println!("{} {}", wind, rock.name); }
             rock = level.apply_wind(rock, wind);
             match level.apply_gravity(rock) {
                 None => {
+                    let l = level.get_highest_count();
+
+                    // println!("{:?}", l);
+                    if let Some((p_rock_count, p_highest_point)) = cycle_detector.get(&(l.clone(), level.rock_count % 5, w)) {
+                        println!("Cycle starting @ {} and repeating every {} increasing height by {} (current height: {})",
+                                 p_rock_count,
+                                 level.rock_count - p_rock_count,
+                                 level.highest_point + 1 - p_highest_point,
+                                 level.highest_point + 1
+                        );
+                    }
+                    cycle_detector.insert((l, level.rock_count % 5, w), (level.rock_count, level.highest_point + 1));
                     if VERBOSE >= 1 { level.print(); }
                     if level.rock_count == rock_count {
                         return level.highest_point + 1;
@@ -177,14 +199,29 @@ fn solution(file: &str, rock_count: isize) -> isize {
 
 
 fn main() {
-    println!("Hello, world! {}", solution("input.txt", 2022));
-}
+    println!("Hello, world! {}", solution("test.txt", 28 + 35));
+    println!("Hello, world! {}", solution("test.txt", 28 + 22));
+    println!("{}", (1000000000000 as i64 - 28) % 35);
+    println!("{}", (1000000000000 as i64 - 28)/ 35 * 53 + 78);
+    println!("{}", 1514285714288 as i64 - 1514285714210);
 
+    println!("Hello, world! {}", solution("input.txt", 663+1700));
+    println!("Hello, world! {}", solution("input.txt", 663 + 1237));
+    println!("{}", (1000000000000 as i64 - 663) % 1700);
+    println!("{}", (1000000000000 as i64 - 663)/ 1700 * 2654);
+    println!("{}", 1561176467622 as i64 + 2947);
+
+    // println!("{}", 1000000000000 as i64 / 2363 * 3666);
+    // println!("{}", 1000000000000 as i64 / 2363);
+    // println!("{}", 1000000000000 as i64 % 2363);
+    // println!("Hello, world! {}", solution("input.txt", 183));
+    // println!("{}", 1551417689094 as i64 + 282);
+}
 
 
 #[cfg(test)]
 mod test {
-    use crate::{solution};
+    use crate::solution;
 
     #[test]
     fn test_part1_test_input() {
