@@ -1,5 +1,7 @@
 use std::fs;
 
+static VERBOSE: i32 = 0;
+
 struct Rock {
     name: &'static str,
     x: isize,
@@ -83,7 +85,7 @@ impl Level {
     }
 
     fn apply_wind(&self, mut rock: Rock, wind: char) -> Rock {
-        println!("Applying wind");
+        if VERBOSE >= 1 { println!("Applying wind"); }
         let mut direction: isize;
         if wind == '<' {
             direction = -1;
@@ -98,7 +100,7 @@ impl Level {
     }
 
     fn apply_gravity(&mut self, mut rock: Rock) -> Option<Rock> {
-        println!("Applying gravity");
+        if VERBOSE >= 1 { println!("Applying gravity"); }
         rock.y -= 1;
         if self.check_collision(&rock) {
             rock.y += 1;
@@ -113,9 +115,9 @@ impl Level {
 
     fn check_collision(&self, rock: &Rock) -> bool {
         for (rock_x, rock_y) in rock.parts.iter() {
-            println!("Collision check: {} + {} = {}, {} + {} = {}", rock_x, rock.x, rock_x + rock.x, rock_y, rock.y, rock_y + rock.y);
+            if VERBOSE >= 1 { println!("Collision check: {} + {} = {}, {} + {} = {}", rock_x, rock.x, rock_x + rock.x, rock_y, rock.y, rock_y + rock.y); }
             if self.is_tile_occupied(rock_x + rock.x, rock_y + rock.y) {
-                println!("collision");
+                if VERBOSE >= 1 { println!("collision"); }
                 return true;
             }
         }
@@ -137,12 +139,12 @@ impl Level {
             for x in 0..7 {
                 print!("{}", self.bottom_line[x][y])
             }
-            println!();
+            if VERBOSE >= 1 { println!(); }
         }
     }
 }
 
-fn solution(file: &str) -> isize {
+fn solution(file: &str, rock_count: isize) -> isize {
     let mut level = Level {
         bottom_line: vec![vec!['.'; 5000]; 7],
         rock_count: 0,
@@ -155,12 +157,12 @@ fn solution(file: &str) -> isize {
 
     loop {
         for wind in data.chars() {
-            println!("{} {}", wind, rock.name);
+            if VERBOSE >= 1 { println!("{} {}", wind, rock.name); }
             rock = level.apply_wind(rock, wind);
             match level.apply_gravity(rock) {
                 None => {
-                    level.print();
-                    if level.rock_count == 2022 {
+                    if VERBOSE >= 1 { level.print(); }
+                    if level.rock_count == rock_count {
                         return level.highest_point + 1;
                     }
                     rock = level.spawn_next_rock();
@@ -175,5 +177,32 @@ fn solution(file: &str) -> isize {
 
 
 fn main() {
-    println!("Hello, world! {}", solution("input.txt"));
+    println!("Hello, world! {}", solution("input.txt", 2022));
+}
+
+
+
+#[cfg(test)]
+mod test {
+    use crate::{solution};
+
+    #[test]
+    fn test_part1_test_input() {
+        assert_eq!(solution("test.txt", 2022), 3068);
+    }
+
+    #[test]
+    fn test_part2_test_input() {
+        // assert_eq!(solution2("test.txt", 1000000000000), 1514285714288);
+    }
+
+    #[test]
+    fn test_part1_input() {
+        assert_eq!(solution("input.txt", 2022), 3124);
+    }
+
+    #[test]
+    fn test_part2_input() {
+        // assert_eq!(solution2("input.txt", 4000000), 13134039205729);
+    }
 }
