@@ -59,9 +59,9 @@ fn fill(mut lava: BTreeMap<(i32, i32, i32), i32>) -> BTreeMap<(i32, i32, i32), i
     steam_expansion.push((0, 0, 0));
 
     while let Some((x, y, z)) = steam_expansion.pop() {
-        if x >= 0 && x <= 21 &&
-            y >= 0 && y <= 21 &&
-            z >= 0 && z <= 21 {
+        if x >= -5 && x <= 25 &&
+            y >= -5 && y <= 25 &&
+            z >= -5 && z <= 25 {
             if let None = lava.get(&(x, y, z)) {
                 lava.insert((x, y, z), 2);
                 steam_expansion.push((x + 1, y, z));
