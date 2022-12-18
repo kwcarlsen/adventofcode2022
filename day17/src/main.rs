@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{HashMap};
 use std::fs;
 
 static VERBOSE: i32 = 0;
@@ -80,7 +80,7 @@ impl Level {
     }
 
     fn apply_wind(&self, mut rock: Rock, wind: char) -> Rock {
-        if VERBOSE >= 1 { println!("Applying wind"); }
+        if VERBOSE >= 2 { println!("Applying wind"); }
         let direction: isize = if wind == '<' {
             -1
         } else {
@@ -94,7 +94,7 @@ impl Level {
     }
 
     fn apply_gravity(&mut self, mut rock: Rock) -> Option<Rock> {
-        if VERBOSE >= 1 { println!("Applying gravity"); }
+        if VERBOSE >= 2{ println!("Applying gravity"); }
         rock.y -= 1;
         if self.check_collision(&rock) {
             rock.y += 1;
@@ -109,9 +109,9 @@ impl Level {
 
     fn check_collision(&self, rock: &Rock) -> bool {
         for (rock_x, rock_y) in rock.parts.iter() {
-            if VERBOSE >= 1 { println!("Collision check: {} + {} = {}, {} + {} = {}", rock_x, rock.x, rock_x + rock.x, rock_y, rock.y, rock_y + rock.y); }
+            if VERBOSE >= 2 { println!("Collision check: {} + {} = {}, {} + {} = {}", rock_x, rock.x, rock_x + rock.x, rock_y, rock.y, rock_y + rock.y); }
             if self.is_tile_occupied(rock_x + rock.x, rock_y + rock.y) {
-                if VERBOSE >= 1 { println!("collision"); }
+                if VERBOSE >= 2 { println!("collision"); }
                 return true;
             }
         }
@@ -148,14 +148,65 @@ impl Level {
             for x in 0..7 {
                 print!("{}", self.bottom_line[x][y])
             }
-            if VERBOSE >= 1 { println!(); }
+             println!();
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Cycle {
+    start: isize,
+    length: isize,
+    height: isize
+}
+
+fn detect_cycle(file: &str, max_rock_count: isize) -> Option<Cycle> {
+    let mut level = Level {
+        bottom_line: vec![vec!['.'; 5000]; 7],
+        rock_count: 0,
+        highest_point: -1,
+    };
+
+    let data = fs::read_to_string(file).expect("could not read file");
+
+    let mut rock = level.spawn_next_rock();
+    let mut cycle_detector = HashMap::new();
+    loop {
+        for (w, wind) in data.chars().enumerate() {
+            rock = level.apply_wind(rock, wind);
+            match level.apply_gravity(rock) {
+                None => {
+                    let l = level.get_highest_count();
+                    if let Some((p_rock_count, p_highest_point)) = cycle_detector.get(&(l.clone(), level.rock_count % 5, w)) {
+                        if VERBOSE >= 1 {
+                            println!("Cycle starting @ {} and repeating every {} increasing height by {} (current height: {})",
+                                     p_rock_count,
+                                     level.rock_count - p_rock_count,
+                                     level.highest_point + 1 - p_highest_point,
+                                     level.highest_point + 1
+                            );
+                        }
+                        return Some(Cycle { start: *p_rock_count, length: level.rock_count - p_rock_count, height: level.highest_point + 1 - p_highest_point});
+                    }
+                    cycle_detector.insert((l, level.rock_count % 5, w), (level.rock_count, level.highest_point + 1));
+
+                    if level.rock_count == max_rock_count {
+                        return None;
+                    }
+
+                    rock = level.spawn_next_rock();
+                }
+                Some(r) => {
+                    rock = r;
+                }
+            }
         }
     }
 }
 
 fn solution(file: &str, rock_count: isize) -> isize {
     let mut level = Level {
-        bottom_line: vec![vec!['.'; 50000]; 7],
+        bottom_line: vec![vec!['.'; 5000]; 7],
         rock_count: 0,
         highest_point: -1,
     };
@@ -164,26 +215,13 @@ fn solution(file: &str, rock_count: isize) -> isize {
 
     let mut rock = level.spawn_next_rock();
 
-    let mut cycle_detector = HashMap::new();
     loop {
-        for (w, wind) in data.chars().enumerate() {
-            if VERBOSE >= 1 { println!("{} {}", wind, rock.name); }
+        for wind in data.chars() {
+            if VERBOSE >= 2 { println!("{} {}", wind, rock.name); }
             rock = level.apply_wind(rock, wind);
             match level.apply_gravity(rock) {
                 None => {
-                    let l = level.get_highest_count();
-
-                    // println!("{:?}", l);
-                    if let Some((p_rock_count, p_highest_point)) = cycle_detector.get(&(l.clone(), level.rock_count % 5, w)) {
-                        println!("Cycle starting @ {} and repeating every {} increasing height by {} (current height: {})",
-                                 p_rock_count,
-                                 level.rock_count - p_rock_count,
-                                 level.highest_point + 1 - p_highest_point,
-                                 level.highest_point + 1
-                        );
-                    }
-                    cycle_detector.insert((l, level.rock_count % 5, w), (level.rock_count, level.highest_point + 1));
-                    if VERBOSE >= 1 { level.print(); }
+                    if VERBOSE >= 2 { level.print(); }
                     if level.rock_count == rock_count {
                         return level.highest_point + 1;
                     }
@@ -197,31 +235,23 @@ fn solution(file: &str, rock_count: isize) -> isize {
     }
 }
 
+fn solution2(file: &str, stone_count: i64) -> i64 {
+    let cycle = detect_cycle(file, 20000).unwrap();
+    let s = solution(file, (cycle.start as i64  + ((stone_count - cycle.start as i64) % cycle.length as i64)) as isize) as i64;
+    let solution = (stone_count - cycle.start as i64) / cycle.length as i64 * cycle.height as i64 + s;
+    solution
+}
+
 
 fn main() {
-    println!("Hello, world! {}", solution("test.txt", 28 + 35));
-    println!("Hello, world! {}", solution("test.txt", 28 + 22));
-    println!("{}", (1000000000000 as i64 - 28) % 35);
-    println!("{}", (1000000000000 as i64 - 28)/ 35 * 53 + 78);
-    println!("{}", 1514285714288 as i64 - 1514285714210);
-
-    println!("Hello, world! {}", solution("input.txt", 663+1700));
-    println!("Hello, world! {}", solution("input.txt", 663 + 1237));
-    println!("{}", (1000000000000 as i64 - 663) % 1700);
-    println!("{}", (1000000000000 as i64 - 663)/ 1700 * 2654);
-    println!("{}", 1561176467622 as i64 + 2947);
-
-    // println!("{}", 1000000000000 as i64 / 2363 * 3666);
-    // println!("{}", 1000000000000 as i64 / 2363);
-    // println!("{}", 1000000000000 as i64 % 2363);
-    // println!("Hello, world! {}", solution("input.txt", 183));
-    // println!("{}", 1551417689094 as i64 + 282);
+    println!("Solution part1: {}", solution("input.txt", 2022));
+    println!("Solution part1: {}", solution2("input.txt", 1000000000000));
 }
 
 
 #[cfg(test)]
 mod test {
-    use crate::solution;
+    use crate::{solution, solution2};
 
     #[test]
     fn test_part1_test_input() {
@@ -230,7 +260,7 @@ mod test {
 
     #[test]
     fn test_part2_test_input() {
-        // assert_eq!(solution2("test.txt", 1000000000000), 1514285714288);
+        assert_eq!(solution2("test.txt", 1000000000000), 1514285714288);
     }
 
     #[test]
@@ -240,6 +270,6 @@ mod test {
 
     #[test]
     fn test_part2_input() {
-        // assert_eq!(solution2("input.txt", 4000000), 13134039205729);
+        assert_eq!(solution2("input.txt", 1000000000000), 1561176470569);
     }
 }
